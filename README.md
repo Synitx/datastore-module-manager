@@ -1,6 +1,6 @@
 # Datastore Manager Module
 
-This module provides a set of functions to interact with Roblox Datastores.
+This module provides a set of functions to interact with Suphi's Datastore Module.
 
 ## Usage
 
