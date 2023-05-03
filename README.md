@@ -1,6 +1,7 @@
 # Datastore Manager Module
 
 This module provides a set of functions to interact with Suphi's Datastore Module.
+Link: https://www.roblox.com/library/13330861418/Manager-for-datastore-module
 
 ## Usage
 
@@ -42,43 +43,54 @@ Examples
 ```lua
 local manager = require(path.to.manager)
 
-local dataManager = manager.new({
-    name = "PlayerData",
-    scope = "Player",
-    key = player.UserId,
-    template = {
-        Coins = 0,
-        Level = 1
-    }
-})
+function playerAdded(player)
+    local dataManager = manager.new({
+        name = "PlayerData",
+        scope = "Player",
+        key = player.UserId,
+        template = {
+            Coins = 0,
+            Level = 1
+        }
+    })
 
-dataManager.save("Coins", 500)
+    dataManager.save("Coins", 500)
+end
+
+game.Players.PlayerAdded(playerAdded)
 ```
+
 > Reading a value from a datastore:
 ```lua
 local manager = require(path.to.manager)
 
-local dataManager = manager.new({
-    name = "PlayerData",
-    scope = "Player",
-    key = player.UserId
-})
+function playerAdded(player)
+    local dataManager = manager.new({
+        name = "PlayerData",
+        scope = "Player",
+        key = player.UserId
+    })
 
-local coins = dataManager.get("Coins")
+    local coins = dataManager.get("Coins")
+    print(coins)
+end
+
+game.Players.PlayerAdded(playerAdded)
 ```
+
 > Incrementing a value in a datastore:
 ```lua
 local manager = require(path.to.manager)
 
-local dataManager = manager.new({
-    name = "PlayerData",
-    scope = "Player",
-    key = player.UserId,
-    template = {
-        Coins = 0,
-        Level = 1
-    }
-})
+function playerAdded(player)
+    local dataManager = manager.new({
+        name = "PlayerData",
+        scope = "Player",
+        key = player.UserId
+    })
 
-dataManager.increment("Coins", 100)
+    dataManager.increment("Coins",10)
+end
+
+game.Players.PlayerAdded(playerAdded)
 ```
