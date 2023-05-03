@@ -1,35 +1,41 @@
-##Datastore Manager Module Documentation
-This module provides a simple way to manage Roblox Datastore operations. It allows users to read, write, and increment values stored in a specific datastore with a given scope and key.
+# Datastore Manager Module
 
-###Usage
-new(options: ManagerOptions) -> Functions
-This function creates a new datastore manager with the provided options.
+This module provides a set of functions to interact with Roblox Datastores.
 
-Parameters:
-options (required): A table that contains the following properties:
-name (optional, default is "DataStore"): The name of the datastore to be managed.
-scope (optional, default is "global"): The scope of the datastore to be managed.
-key (optional): The key of the datastore to be managed.
-template (optional): A template table for the datastore. If specified, it will be used to initialize the datastore with default values.
-Returns:
-This function returns a table with the following properties:
+## Usage
 
-get(key: string?) -> any?: Returns the value associated with the specified key. If no key is provided, it returns the entire datastore.
-save(key: string, value: string|{}|boolean|number) -> Promise: Saves a value associated with the specified key to the datastore.
-increment(key: string, value: number) -> Promise: Increments the value associated with the specified key by the provided value.
-onSave -> RBXScriptSignal: An event that fires when a value is saved to the datastore. The event returns the key and value that were saved.
-onIncrement -> RBXScriptSignal: An event that fires when a value is incremented in the datastore. The event returns the key and value that were incremented.
-onError -> RBXScriptSignal: An event that fires when an error occurs while saving or incrementing a value in the datastore. The event returns an error message.
-close(options: ManagerCloseOptions) -> Promise
-This function closes a previously opened datastore.
+### `manager.new(options:ManagerOptions)`
 
-Parameters:
-options (required): A table that contains the following properties:
-name (required): The name of the datastore to be closed.
-key (optional): The key of the datastore to be closed.
-scope (optional, default is "global"): The scope of the datastore to be closed.
-Returns:
-This function returns a Promise that resolves with a boolean value of true if the datastore was successfully closed, and rejects with an error message if the datastore was not found.
+Creates a new instance of the datastore manager with the specified options.
+
+#### Parameters
+- `options:ManagerOptions`: The options for the datastore manager.
+    - `name:string?`: The name of the datastore.
+    - `scope:string?`: The scope of the datastore.
+    - `key:string?`: The key of the datastore.
+    - `template:{}?`: The template of the datastore.
+
+#### Returns
+A table containing the following functions:
+- `get(key:string?) : any?`: Returns the value for the specified key.
+- `save(key:string,value:string|{}|boolean|number) : Promise`: Saves the value for the specified key.
+- `increment(key:string,value:number) : Promise`: Increments the value for the specified key.
+- `onSave : RBXScriptSignal`: Fired when data is saved.
+- `onIncrement : RBXScriptSignal`: Fired when data is incremented.
+- `onError : RBXScriptSignal`: Fired when an error occurs.
+
+### `manager.close(options:ManagerCloseOptions) : Promise`
+
+Closes the specified datastore.
+
+#### Parameters
+- `options:ManagerCloseOptions`: The options for closing the datastore.
+    - `name:string`: The name of the datastore.
+    - `scope:string?`: The scope of the datastore.
+    - `key:string?`: The key of the datastore.
+
+#### Returns
+A Promise that resolves with `true` if the datastore is successfully closed.
 
 Examples
 > Saving a value to a datastore:
