@@ -1,95 +1,95 @@
 local manager = {}
 local datastore = require(script.Datastore)
-local Promise = require(script.Promise)
 
-local template = {}
-export type ManagerOptions = {
-    name:string?,
-    scope:string?,
-    key:string?,
-    template:{}?
+export type Signal = {
+	Connect: (self: Signal, func: (...any) -> (), ...any) -> Connection,
+	Once: (self: Signal, func: (...any) -> (), ...any) -> Connection,
+	Wait: (self: Signal, ...any) -> ...any,
+	Fire: (self: Signal, ...any) -> (),
+	FastFire: (self: Signal, ...any) -> (),
+	DisconnectAll: (self: Signal) -> (),
 }
 
-export type ManagerCloseOptions = {
-    name:string,
-    key:string?,
-    scope:string
+export type Connection = {
+	Signal: Signal?,
+	Disconnect: (self: Connection) -> (),
 }
 
 local events = {
-    onSave = Instance.new("BindableEvent"),
-    onIncrement = Instance.new("BindableEvent"),
-    onError = Instance.new("BindableEvent")
+	OnError = Instance.new("BindableEvent")
 }
 
-function manager.new(options:ManagerOptions)
-    local name,scope,key,template = options.name,options.scope,options.key,options.template
-    local data = datastore.new(name,scope,key)
-    local errorType = data:Open(template)
-    if errorType ~= nil then warn(`Failed to open datastore {name} for scope {scope}`) end
-    local functions = {}
-    functions.get = function(key:string?) : any?
-        if not data.Value then
-            return nil
-        end
-        local res = data.Value[key]
-        if (res) then
-            return res
-        else
-            return nil
-        end
-    end
-    functions.save = function(key:string,value:string|{}|boolean|number)
-        return Promise.new(function(resolve,reject)
-            if (data.State ~= true) then
-                events.onError:Fire('Error while saving data: Data state is not true!')
-                return nil
-            end
-            if not value then
-                events.onError:Fire('Error while saving: Value argument is required.')
-                reject('Value argument is required.')
-            else
-                data.Value[key] = value
-                events.onSave:Fire(key,value)
-                resolve(data.Value[key])
-            end
-        end)
-    end
-    functions.increment = function(key:string,value:number)
-        return Promise.new(function(resolve,reject)
-            if (data.State ~= true) then
-                events.onError:Fire('Error while saving data: Data state is not true!')
-                return nil
-            end
-            local info = data.Value[key]
-            if (not info) then
-                data.Value[key] = value
-                resolve(data.Value[key])
-            end
-            if (typeof(info) ~= "number") then
-                events.onError:Fire(`Error while incrementing: {key} value must be a number.`)
-                reject(`{key} value must be a number`)
-            end
-            data.Value[key] += value
-            events.onIncrement:Fire(key,value)
-            resolve(data.Value[key])
-        end)
-    end
-    functions.onSave = events.onSave.Event
-    functions.onIncrement = events.onIncrement.Event
-    functions.onError = events.onError.Event
-    return functions
+export type DataStoreObject = {
+	get:(Key:string?)->(any?);
+	set:(Key:string,Value:any) -> (any?),
+	increment: (Key:string,Value:number?) -> (number),
+	save: () -> (any?),
+	close: ()->(boolean),
+	saved: Signal
+}
+
+function manager.new(DataStoreName:string,Scope:string,Key:string?,Template:{}?) : DataStoreObject|nil
+	local store = datastore.find(DataStoreName,Scope,Key)
+	if (not store) then
+		if (not Template) then return warn('Template is required') end
+		store = datastore.new(DataStoreName,Scope,Key)
+		while store.State == false do
+			if store:Open(Template) ~= "Success" then
+				events.OnError:Fire(`Unable to open data for key {Key}, retrying in 6 seconds..`)
+				task.wait(6)
+			end
+		end
+	end
+	return {
+		get = function(Key:string?)
+			if not Key then
+				return store
+			end
+			return store.Value[Key] or nil
+		end,
+		set = function(Key:string,Value:any)
+			if (not Key) then
+				events.OnError:Fire(`Key is required to set the data.`)
+				return
+			end
+			if (not Value) then
+				events.OnError:Fire(`Value is required to set the data.`)
+				return
+			end
+			store.Value[Key] = Value
+			return store.Value[Key]
+		end,
+		increment = function(Key:string,Value:number?)
+			if not Value then
+				Value = 1
+			end
+			if (typeof(store.Value[Key]) == "number") then
+				events.OnError:Fire(`The value for key {Key} isn't a number!`)
+				return
+			end
+			if (not store.Value[Key]) then
+				store.Value[Key] = Value
+				return store.Value[Key]
+			end
+			store.Value[Key] += Value
+			return store.Value[Key]
+		end,
+		save = function()
+			store:Save()
+			return store.Value
+		end,
+		saved = store.Saved,
+		close = function()
+			if store ~= nil then
+				store:Destroy()
+				return true
+			else
+				return false
+			end
+		end,
+	}
 end
 
-function manager.close(options:ManagerCloseOptions)
-    return Promise.new(function(resolve,reject)
-        local foundedDataStore = datastore.find(options.name,options.scope,options.key)
-        if not foundedDataStore then
-            reject(`Manager Close: Datastore named {options.name} not found!`)
-        end
-        foundedDataStore:Destroy()
-        resolve(true)
-    end)
-end
+manager.onError = events.OnError.Event
 
 return manager
