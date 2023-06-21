@@ -1,61 +1,37 @@
-local manager = require(game.ReplicatedStorage.Manager)
+local module = require(game.ReplicatedStorage.Manager)
 local template = {
-    Level = 1,
-    Coins = 0,
-    Inventory = {}
+	Coins = 0
 }
 
-function setupLeaderstats(player)
-    local folder = Instance.new("Folder",player)
-    folder.Name = "leaderstats"
-    
-    for i,v in pairs({Level = 1, Coins = 0}) do
-        local val = Instance.new("NumberValue",folder)
-        val.Name = i
-        val.Value = v
-    end
-    
-    return folder
-end
-
-game.Players.PlayerAdded:Connect(function(plr)
-    local data = manager.new({
-        name = 'PlayerDataTest',
-        scope = 'Player',
-        key = plr.UserId,
-        template = template
-    })
-    
-    local leaderstats = setupLeaderstats(plr)
-    
-    data.onError:Connect(function(err)
-        warn(err)
-    end)
-    data.onSave:Connect(function(key,value)
-        print(`Successfully saved key {key} with the value of {value}!`)
-    end)
-    data.onIncrement:Connect(function(key,incrementedValue)
-        print(`Successfully incremented value for key {key}, total value: {incrementedValue}`)
-    end)
-    
-    local playerLevel = data.get('Level')
-    if (playerLevel) then
-        leaderstats.Level.Value = playerLevel
-    end
-    local playerCoins = data.get('Coins')
-    if (playerCoins) then
-        leaderstats.Coins.Value = playerCoins
-    end
-    leaderstats.Level:GetPropertyChangedSignal("Value"):Connect(function()
-        data.save('Level',leaderstats.Level.Value)
-    end)
-    leaderstats.Coins:GetPropertyChangedSignal("Value"):Connect(function()
-        data.save('Coins',leaderstats.Coins.Value)
-    end)
+module.onError:Connect(function(errorMessage)
+	warn(errorMessage)
 end)
 
-game.Players.PlayerRemoving:Connect(function(plr)
-    manager.close({name='PlayerDataTest',scope='Player',key=plr.UserId}):Then(function(state)
-        print(`Is Data saved for {plr.Name}? : {state}`)
-    end):Catch(warn)
+game.Players.PlayerAdded:Connect(function(player)
+	local datastore = module.new("Player",`Player_{player.UserId}`,nil,template)
+	if (not datastore) then
+		warn('Something is wrong!')
+	end
+	local value = datastore.get("Coins")
+	
+	local leaderstats = Instance.new("Folder",player)
+	leaderstats.Name = "leaderstats"
+	
+	local coins = Instance.new("NumberValue",leaderstats)
+	coins.Name = "Coins"
+	coins.Value = value or 0
+	
+	datastore.saved:Connect(function(state)
+		print(state)
+	end)
+	
+	coins:GetPropertyChangedSignal("Value"):Connect(function()
+		datastore.set("Coins",coins.Value)
+	end)
+end)
+
+game.Players.PlayerRemoving:Connect(function(player)
+	local datastore = module.new("Player",`Player_{player.UserId}`)
+	local isClosed = datastore.close()
+	print(isClosed and `datastore closed for key Player_{player.UserId}` or `unable to close datastore for key Player_{player.UserId}`)
 end)
