@@ -45,7 +45,7 @@ function manager.new(DataStoreName:string,Scope:string,Key:string?,Template:{}?)
 			if not Key then
 				return store
 			end
-			return store.Value[Key] or nil
+			return store.Value[Key]
 		end,
 		set = function(Key:string,Value:any)
 			if (not Key) then
@@ -63,7 +63,7 @@ function manager.new(DataStoreName:string,Scope:string,Key:string?,Template:{}?)
 			if not Value then
 				Value = 1
 			end
-			if (typeof(store.Value[Key]) == "number") then
+			if (typeof(store.Value[Key]) ~= "number") then
 				events.OnError:Fire(`The value for key {Key} isn't a number!`)
 				return
 			end
